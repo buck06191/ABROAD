@@ -42,6 +42,9 @@ def configure_pipeline(sensor_num, n_workers=4, artefact_type=None,
 
 
 def pipeline(df, config):
+    artefact_key = {"All" : " ".
+               "Light" : " light ",
+               "Motion": " motion "}
     features = parallel_batch(ML.motion_light_split(
         df, config['artefact_type']), config['n_workers'])
     artefact = artefact_name(config['artefact_type'])
@@ -61,7 +64,7 @@ def pipeline(df, config):
 
 
 def main_run(df, sensor, n_workers):
-    targets = targets = ['Control', 'Horizontal', 'Vertical', 'Pressure',
+    targets = ['Control', 'Horizontal', 'Vertical', 'Pressure',
                          'Frown', 'Ambient Light', 'Torch Light']
     config = configure_pipeline(sensor, n_workers=n_workers, targets=targets)
     pipeline(df, config)

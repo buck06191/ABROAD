@@ -176,7 +176,7 @@ def final_test(test, classifier):
 
 
 def ROC_plot(fpr, tpr, auroc, n_classes, datetime,
-             target_names, sensor_num, split_type):
+             target_names, artefact, sensor_num, split_type):
     # Plot all ROC curves
     lw = 2
     plt.figure()
@@ -202,8 +202,8 @@ def ROC_plot(fpr, tpr, auroc, n_classes, datetime,
     plt.ylim([0.0, 1.05])
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
-    plt.title('Comparison of AUROC scores for each class of Artefact - Sensor %s (%s)' %
-              (sensor_num, split_type))
+    plt.title('AUROC scores for all%sartefacts - Sensor %s (%s)' %
+              (artefact, sensor_num, split_type))
     lgd = plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     plt.savefig("figures/ROC_Curve_%s_%s" % (datetime, split_type),
                 bbox_extra_artists=(lgd,), bbox_inches='tight')

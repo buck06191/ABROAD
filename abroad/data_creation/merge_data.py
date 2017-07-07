@@ -15,7 +15,7 @@ import copy
 
 
 BASEDIR = os.path.abspath(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-assert utility.base_dir_check(BASEDIR, "pyABAD", verbose=True), "incorrect BASEDIR in merge_data"
+assert utility.base_dir_check(BASEDIR, "ABROAD", verbose=True), "incorrect BASEDIR in merge_data"
 HDF_FILE = os.path.join(BASEDIR,'data','subject_data.h5')
 
 
