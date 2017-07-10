@@ -46,7 +46,10 @@ def df_concat(sensor_num, subject_number):
         data.artefact_row_extraction()
         data.group_labels()
         data.label_raw_data()
+        data.label_conc_data()
         df_list.append(data.raw_df)
+        data.conc_df.to_csv(os.path.join(BASEDIR,'data','conc_subject_%d.csv' % i),
+                      index=False)
 
     all_df = pd.concat(df_list)
     print('\nWriting data to file\n')
