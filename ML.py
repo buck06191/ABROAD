@@ -21,9 +21,9 @@ import datetime
 
 DATAPATH = os.path.join('.', 'data')
 
-today=datetime.datetime.now().isoformat(sep='-')
-os.mkdir(os.path.join(DATAPATH, today))
-classification_file=os.path.join(DATAPATH,today,'classification-report.txt')
+today=datetime.datetime.now().isoformat(sep='T')
+os.makedirs(os.path.join(DATAPATH,"classification_scores", today))
+classification_file=os.path.join(DATAPATH,"classification_scores",today,'classification-report.txt')
 
 
 
@@ -116,7 +116,7 @@ def classification(train, test, classifier="rfc", data_name=""):
     grid.fit(train['X'], y_train)
 
 
-    file_output = """ Using {0} data\n\nUsing {1} classifier.
+    file_output = """Using {0} data\n\nUsing {1} classifier.
 ====================\n
 Best parameters set found on development set:\n\n{2}\n
 Detailed Classification Report
@@ -128,7 +128,7 @@ The scores are computed on the full test set.\n
     stds = grid.cv_results_['std_test_score']
     grid_scores = "\n".join(["%0.3f (+/-%0.03f) for %r" % (mean, std * 2, params) for mean, std, params in zip(means, stds, grid.cv_results_['params'])])
     with open(os.path.join("logs","grid_scores.log"), "a") as gsf:
-        gsf.write("SCores for {}".format(data_name))
+        gsf.write("Scores for {}".format(data_name))
         gsf.write(grid_scores)
 
     classifier_info['params'] = grid.best_params_
@@ -268,10 +268,11 @@ if __name__=="__main__":
 
     features = generate_features()
 
-    for idx, df in enumerate(features):
-        print("Testing for %s" % feature_sets[idx])
-        info = pipeline(df)
-        pprint.pprint(info)
+    for estimator in ['rfc', 'svr']:
+        for idx, df in enumerate(features):
+            print("Testing for %s" % feature_sets[idx])
+            info = pipeline(df, classifier = estimator, data_name = feature_sets[idx])
+            pprint.pprint(info)
 
 
 
