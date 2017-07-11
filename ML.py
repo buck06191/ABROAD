@@ -87,7 +87,7 @@ def classification(train, test, classifier="rfc", data_name=""):
 
     svr = multiclass.OneVsRestClassifier(svm.SVC(class_weight="balanced", decision_function_shape="ovr"))
     rfc = RandomForestClassifier(n_estimators=100, class_weight="balanced")
-
+    #TODO: Include Naive Bayes. Check why SVR is assigning multiple labels - maybe remove it.
     f1_score = metrics.make_scorer(metrics.f1_score, average="weighted")
 
     if classifier == "rfc":
