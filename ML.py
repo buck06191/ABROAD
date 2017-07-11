@@ -15,6 +15,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.exceptions import UndefinedMetricWarning
 import os, time, pprint, sys, warnings
 warnings.simplefilter('ignore', UndefinedMetricWarning)
+warnings.simplefilter('ignore', UserWarning)
 import datetime
 
 
@@ -42,10 +43,12 @@ def generate_features():
 
     features = [{"data":pd.read_csv(os.path.join(df7_dir,'parallel_features_7_%s.csv'%(x)), index_col=0),
                  "sensor": 7, "targets":targets[x],
-                 "artefact": artefact_key[x]} for x  in ['All', 'Light', 'Motion']]
+                 "artefact": artefact_key[x],
+                 "type": x} for x  in ['All', 'Light', 'Motion']]
     features.extend([{"data":pd.read_csv(os.path.join(df13_dir,'parallel_features_13_%s.csv'%(x)), index_col=0),
                       "sensor": 13, "targets":targets[x],
-                      "artefact": artefact_key[x]} for x  in ['All', 'Light', 'Motion']])
+                      "artefact": artefact_key[x],
+                      "type": x} for x  in ['All', 'Light', 'Motion']])
 
     return features
 
@@ -57,9 +60,6 @@ def classification(train, test, classifier="rfc", data_name=""):
 
     splitter = list(
         GroupShuffleSplit(n_splits=10, random_state=rand_state).split(train['X'], train['y'], train['groups']))
-    n_features = train['X'].shape[1]
-    features = "\n\t".join(list(train['X'].columns))
-    print("Tuning with %d features: \n\t%s" % (n_features, features))
 
     lb_train = preprocessing.LabelBinarizer()
     lb_train.fit(train['y'])
@@ -111,10 +111,13 @@ def classification(train, test, classifier="rfc", data_name=""):
 
     classifier_info = {"params":None, "preds": None, "clf": None}
 
-
+    now = time.time()
     grid = GridSearchCV(pipe, c_dict[classifier], scoring=f1_score, cv=splitter, n_jobs=-2, iid=False)
     grid.fit(train['X'], y_train)
-
+    tt = time.time() - now
+    tt_format = "{0} hours, {1} mins, {2} seconds and {3} ms\n".format(tt // 3600, tt % 3600 // 60, tt % 60 // 1,
+                                                                       tt // 1)
+    print("Training for \"{0}\" took {1}".format(data_name, tt_format))
 
     file_output = """Using {0} data\n\nUsing {1} classifier.
 ====================\n
@@ -136,7 +139,6 @@ The scores are computed on the full test set.\n
     classifier_info['preds'] = y_pred
     classifier_info['clf'] = grid.best_estimator_
     clf_report = metrics.classification_report(y_true, y_pred)
-    print(clf_report, file=sys.stdout)
     best_param_string = "\n".join(['\t%s: %r' % (param_name, classifier_info['params'][param_name]) for param_name in sorted(classifier_info['params'])])
     print(file_output.format(data_name, classifier, best_param_string, clf_report))
     with open(classification_file, "a") as cf:
@@ -146,120 +148,12 @@ The scores are computed on the full test set.\n
     return classifier_info
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-def score_classification(train, test):
-    """
-    Function to classify the training data output from train_test_split
-    :param train: train output from test_train_split function
-    :return: False positive rate, true positive rate and AUROC
-    """
-
-    rand_state = np.random.randint(100)
-
-    splitter = list(GroupShuffleSplit(n_splits=10, random_state=rand_state).split(train['X'], train['y'], train['groups']))
-    n_groups = len(set(train['groups']))
-
-    lb_train = preprocessing.LabelBinarizer()
-    lb_train.fit(train['y'])
-    y_train = lb_train.transform(train['y'])
-
-    # Binarize the training data
-    lb_test = preprocessing.LabelBinarizer()
-    lb_test.fit(test['y'])
-    y_test = lb_test.transform(test['y'])
-
-    svc_param_grid = [
-        {'estimator__C': [1, 10, 100, 1000], 'estimator__kernel': ['linear']},
-        {'estimator__C': [1, 10, 100, 1000], 'estimator__gamma': [0.01, 0.001, 0.0001, 0.00001], 'estimator__kernel': ['rbf']},
-    ]
-
-    rfc_param_grid = [
-        {"max_depth": [3, None],
-         "max_features":  [1, np.ceil(n_groups/2), n_groups],
-         "min_samples_split": [1, 3, 10],
-         "min_samples_leaf": [1, 3, 10],
-         "bootstrap": [True, False],
-         "criterion": ["gini", "entropy"]}
-    ]
-
-
-    scores = ['precision_macro', 'recall_macro']
-    svr = multiclass.OneVsRestClassifier(svm.SVC(class_weight="balanced", decision_function_shape="ovr"))
-    rfc = RandomForestClassifier(n_estimators=100)
-    c_dict = {"svr": (svr, svc_param_grid), "rfc": (rfc, rfc_param_grid)}
-
-    classifier_info = {k: {"params":None, "preds": None, "clf": None} for k in scores}
-    for score in scores:
-        for c in c_dict:
-            print("# Now training for score: \t %s using %s" % (score, c))
-            clf = GridSearchCV(c_dict[c][0], c_dict[c][1], scoring=score, cv=splitter)
-
-            clf.fit(train['X'], y_train)
-
-            print("Best parameters set found on development set:")
-            print()
-            print(clf.best_params_)
-            classifier_info[score]['params'] = clf.best_params_
-            print()
-            print("Grid scores on development set:")
-            print()
-            means = clf.cv_results_['mean_test_score']
-            stds = clf.cv_results_['std_test_score']
-            for mean, std, params in zip(means, stds, clf.cv_results_['params']):
-                print("%0.3f (+/-%0.03f) for %r"
-                      % (mean, std * 2, params))
-            print()
-            print("Detailed classification report:")
-            print()
-            print("The model is trained on the full training set.")
-            print("The scores are computed on the full test set.")
-            print()
-            y_true, y_pred = y_test, clf.predict(test['X'])
-            classifier_info[score]['preds'] = y_pred
-            classifier_info[score]['clf'] = clf.best_estimator_
-            print(metrics.classification_report(y_true, y_pred))
-            print()
-
-
-    """
-    fpr, tpr, auroc = roc_area(classifier, train['X'].iloc[
-                               test_idx], y[test_idx], n_classes)
-    # First aggregate all false positive rates
-    all_fpr = np.unique(np.concatenate([fpr[i] for i in range(n_classes)]))
-
-    # Then interpolate all ROC curves at this points
-    mean_tpr = np.zeros_like(all_fpr)
-    for i in range(n_classes):
-        mean_tpr += scipy.interp(all_fpr, fpr[i], tpr[i])
-
-    # Finally average it and compute AUC
-    mean_tpr /= n_classes
-
-    fpr["macro"] = all_fpr
-    tpr["macro"] = mean_tpr
-    auroc["macro"] = metrics.auc(fpr["macro"], tpr["macro"])
-
-    return fpr, tpr, auroc, n_classes, classifier
-    """
-    return classifier_info
-
-def pipeline(features, classifier="rfc", data_name=""):
-    now = time.time()
-    split_data = ML.test_train_split(features['data'])
+def pipeline(split_data, classifier="rfc", data_name=""):
+    now_pipeline = time.time()
     info = classification(split_data[0], split_data[1], classifier, data_name)
-    time_taken = time.time()-now
-    print("Training and testing for {0} took {1}".format(data_name, datetime.timedelta(seconds=time_taken)))
+    tt = time.time()-now_pipeline
+    tt_format = "{0} hours, {1} mins, {2} seconds and {3} ms\n".format(tt//3600, tt%3600//60, tt%60//1, tt//1)
+    print("Training and testing for \"{0}\" took {1}".format(data_name, tt_format))
     return info
 
 if __name__=="__main__":
@@ -268,10 +162,19 @@ if __name__=="__main__":
 
     features = generate_features()
 
-    for estimator in ['rfc', 'svr']:
-        for idx, df in enumerate(features):
-            print("Testing for %s" % feature_sets[idx])
-            info = pipeline(df, classifier = estimator, data_name = feature_sets[idx])
+    for idx, df in enumerate(features):
+        print("Processing {type} artefacts for sensor {sensor}".format(**df))
+        split_data = ML.test_train_split(df['data'])
+        fname = "s{sensor}-{type}".format(**df)
+        # Write data to file for later use
+        for k, v in split_data[0].items():
+            v.to_csv(os.path.join(DATAPATH, "partitioned_data","training","%s-%s.csv"%(fname,k)),index=False)
+        for k, v in split_data[1].items():
+            v.to_csv(os.path.join(DATAPATH, "partitioned_data","testing","%s-%s.csv"%(fname,k)),index=False)
+        print("Testing for %s" % feature_sets[idx])
+        for estimator in ['rfc', 'svr']:
+            print("Estimator:\t%s" % estimator)
+            info = pipeline(split_data, classifier = estimator, data_name = feature_sets[idx])
             pprint.pprint(info)
 
 
