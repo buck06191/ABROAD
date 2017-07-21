@@ -2,3 +2,5 @@
 conc_*.csv
 partitioned_data/
 classification_scores/
+
+!transpose_predictions.sh
