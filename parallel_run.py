@@ -7,6 +7,7 @@ import os
 DATAPATH = os.path.join('.', 'data')
 
 
+
 def parallel_split(df, n_workers):
     x = [df.shape[0] // n_workers * k for k in range(n_workers)]
     x.append(df.shape[0])
@@ -42,7 +43,7 @@ def configure_pipeline(sensor_num, n_workers=4, artefact_type=None,
 
 
 def pipeline(df, config):
-    artefact_key = {"All" : " ".
+    artefact_key = {"All" : " ",
                "Light" : " light ",
                "Motion": " motion "}
     features = parallel_batch(ML.motion_light_split(
@@ -50,15 +51,15 @@ def pipeline(df, config):
     artefact = artefact_name(config['artefact_type'])
     features.to_csv(os.path.join(DATAPATH,
                                  'df_%s' % config['sensor_num'],
-                                 'parallel_features_%s_%s.csv' %
-                                 (config['sensor_num'], artefact)))
-    split_data = ML.test_train_split(features)
-    fpr, tpr, auroc, n_classes, clf = ML.classification(split_data[0])
-    ML.ROC_plot(fpr, tpr, auroc, n_classes, config['date'], config[
-                'target_names'], config['sensor_num'], 'Training')
-    fpr, tpr, auroc, n_classes = ML.final_test(split_data[1], clf)
-    ML.ROC_plot(fpr, tpr, auroc, n_classes, config['date'], config[
-                'target_names'], config['sensor_num'], 'Test')
+                                 'parallel_features_%s_%s_%s.csv' %
+                                 (config['sensor_num'], artefact, config['date'])))
+    #split_data = ML.test_train_split(features)
+    #fpr, tpr, auroc, n_classes, clf = ML.classification(split_data[0])
+    #ML.ROC_plot(fpr, tpr, auroc, n_classes, config['date'], config[
+    #            'target_names'], config['sensor_num'], 'Training')
+    #fpr, tpr, auroc, n_classes = ML.final_test(split_data[1], clf)
+    #ML.ROC_plot(fpr, tpr, auroc, n_classes, config['date'], config[
+    #            'target_names'], config['sensor_num'], 'Test')
 
     return True
 
