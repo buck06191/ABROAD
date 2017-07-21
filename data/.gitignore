@@ -1,2 +1,4 @@
 *.h5
 conc_*.csv
+partitioned_data/
+classification_scores/

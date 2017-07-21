@@ -22,8 +22,7 @@ def percentage_coroutine(to_process, print_on_percent=0.05):
         if (count >= print_count):
             count = 0
             pct = (float(processed) / float(to_process))
-
-            print("{:.0%} finished".format(pct))
+            print("%d%% finished  \r" % pct)
 
 
 def trace_progress(func, progress=None):
@@ -48,7 +47,7 @@ def parallel_apply(f, X, n_workers=1):
     num_tasks = len(X)
     with Pool(processes=n_workers) as p:
         for i, result in enumerate(p.imap(f, X.as_matrix(), 1)):
-            sys.stderr.write('\rdone {0:%}\n'.format(i / num_tasks))
+            sys.stderr.write('\rdone {0:.0%}\r'.format(i / num_tasks))
             results.append(result)
 
     return results
@@ -60,12 +59,12 @@ def feature_engineering(X, y, groups, n_workers=1):
     features['Artefact'] = y.values
     features['Subject'] = groups.values
     print('Calculating AUC')
-    auc = parallel_apply(AUC, X, n_workers)
-    min_max_scaler = preprocessing.MinMaxScaler()
+    features['AUC'] = parallel_apply(AUC, X, n_workers)
+    #min_max_scaler = preprocessing.MinMaxScaler()
     # auc = X.apply(trace_progress(
     #    np.trapz, progress=co2), raw=True, axis=1)
 
-    features['AUC'] = min_max_scaler.fit_transform(auc)
+    #features['AUC'] = min_max_scaler.fit_transform(auc)
     print('Calculating PSD')
     psd = parallel_apply(average_PSD, X, n_workers)
     # features['PSD'] = X.apply(trace_progress(

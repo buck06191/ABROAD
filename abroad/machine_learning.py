@@ -1,7 +1,5 @@
-import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import copy
 from itertools import cycle
 import seaborn as sns
 
@@ -37,7 +35,7 @@ def feature_creation(df, n_workers=1):
     return features
 
 
-def test_train_split(df):
+def test_train_split(df, seed=None):
     """
     Function to split a dataframe of engineered features by subject and output
     required Dataframes.
@@ -45,7 +43,10 @@ def test_train_split(df):
     :return: list of dicts of form [[train_data],[test_data]], with data being
     X,  y, groups.
     """
-    rand_state = np.random.randint(100)
+    if seed==None:
+        rand_state = np.random.randint(100)
+    else:
+        rand_state=seed
     X, y, groups = data_separation(df)
     train_idx, test_idx = next(GroupShuffleSplit(
         n_splits=10, random_state=rand_state).split(X, y, groups))
